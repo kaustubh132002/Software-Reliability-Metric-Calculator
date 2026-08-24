@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - Software Reliability Calculator{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Logo" class="auth-logo">
+      <h1 class="auth-title">SEQA Reliability Suite</h1>
+      <p class="auth-subtitle">Software Engineering & Quality Assurance Metrics</p>
+    </div>
+
+    <!-- Demo Credentials Quick-Fill Box -->
+    <div class="demo-account-box">
+      <div style="font-weight: 700; color: #38bdf8; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+        <span><i class="fas fa-key"></i> Quick Demo Access</span>
+        <span class="demo-badge">SEQA 2026</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-sm btn-outline" style="color: #ffffff; border-color: rgba(59,130,246,0.5);" onclick="fillDemo('admin@seqa.edu', 'admin123')">
+          <i class="fas fa-shield-alt"></i> Fill Admin
+        </button>
+        <button type="button" class="btn btn-sm btn-outline" style="color: #ffffff; border-color: rgba(59,130,246,0.5);" onclick="fillDemo('student@seqa.edu', 'student123')">
+          <i class="fas fa-user-graduate"></i> Fill Student
+        </button>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.login') }}" id="loginForm">
+      <div class="form-group">
+        <label class="form-label" style="color: #e2e8f0;">Email Address</label>
+        <div class="input-group">
+          <i class="fas fa-envelope input-icon"></i>
+          <input type="email" name="email" id="email" class="form-control input-with-icon" 
+                 placeholder="name@university.edu" value="{{ email or '' }}" required autofocus>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="color: #e2e8f0;">Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" name="password" id="password" class="form-control input-with-icon" 
+                 placeholder="••••••••" required>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #94a3b8; cursor: pointer;">
+          <input type="checkbox" name="remember" value="1" checked style="accent-color: #2563eb;">
+          Remember me
+        </label>
+        <span style="font-size: 0.82rem; color: #38bdf8;">SEQA CS601</span>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.8rem;">
+        <i class="fas fa-sign-in-alt"></i> Sign In to Dashboard
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.75rem; font-size: 0.88rem; color: #94a3b8;">
+      Don't have an account? 
+      <a href="{{ url_for('main.register') }}" style="color: #38bdf8; font-weight: 600;">Register here</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillDemo(email, pwd) {
+  document.getElementById('email').value = email;
+  document.getElementById('password').value = pwd;
+}
+</script>
+{% endblock %}

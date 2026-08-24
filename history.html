@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Records History - Software Reliability Metric Calculator{% endblock %}
+{% block page_name %}Reliability Records History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Calculations History & Records</h1>
+    <p class="page-subtitle">Search, filter, edit, delete, and export past software reliability evaluations.</p>
+  </div>
+  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    <a href="{{ url_for('main.export_csv') }}" class="btn btn-outline btn-sm">
+      <i class="fas fa-file-csv"></i> Download CSV
+    </a>
+    <a href="{{ url_for('main.export_summary_pdf') }}" class="btn btn-outline btn-sm">
+      <i class="fas fa-file-pdf"></i> Audit Report (PDF)
+    </a>
+    <a href="{{ url_for('main.calculator') }}" class="btn btn-primary btn-sm">
+      <i class="fas fa-plus"></i> New Calculation
+    </a>
+  </div>
+</div>
+
+<!-- Search & Filtering Bar -->
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+    <!-- Search Input -->
+    <div style="flex: 1; min-width: 260px; position: relative;">
+      <div class="input-group">
+        <i class="fas fa-search input-icon"></i>
+        <input type="text" id="historySearchInput" class="form-control input-with-icon" 
+               placeholder="Search by system name, notes..." value="{{ search }}">
+      </div>
+    </div>
+
+    <!-- Category Filter -->
+    <div style="min-width: 180px;">
+      <select id="historyCategoryFilter" class="form-control">
+        <option value="All" {% if category == 'All' or not category %}selected{% endif %}>All Architectures</option>
+        <option value="Web Application" {% if category == 'Web Application' %}selected{% endif %}>Web Application</option>
+        <option value="FinTech / Payment" {% if category == 'FinTech / Payment' %}selected{% endif %}>FinTech / Payment</option>
+        <option value="Safety-Critical Medical" {% if category == 'Safety-Critical Medical' %}selected{% endif %}>Safety-Critical Medical</option>
+        <option value="Telecommunications" {% if category == 'Telecommunications' %}selected{% endif %}>Telecommunications</option>
+        <option value="Aerospace & Defense" {% if category == 'Aerospace & Defense' %}selected{% endif %}>Aerospace & Defense</option>
+        <option value="IoT / Embedded" {% if category == 'IoT / Embedded' %}selected{% endif %}>IoT / Embedded</option>
+      </select>
+    </div>
+
+    <!-- Sort By -->
+    <div style="min-width: 180px;">
+      <select id="historySortBy" class="form-control">
+        <option value="created_at-DESC" {% if sort_by == 'created_at' and sort_order == 'DESC' %}selected{% endif %}>Date (Newest First)</option>
+        <option value="created_at-ASC" {% if sort_by == 'created_at' and sort_order == 'ASC' %}selected{% endif %}>Date (Oldest First)</option>
+        <option value="availability-DESC" {% if sort_by == 'availability' and sort_order == 'DESC' %}selected{% endif %}>Availability (Highest First)</option>
+        <option value="availability-ASC" {% if sort_by == 'availability' and sort_order == 'ASC' %}selected{% endif %}>Availability (Lowest First)</option>
+        <option value="mtbf-DESC" {% if sort_by == 'mtbf' and sort_order == 'DESC' %}selected{% endif %}>MTBF (Highest First)</option>
+        <option value="failures-DESC" {% if sort_by == 'failures' and sort_order == 'DESC' %}selected{% endif %}>Failures (Most First)</option>
+      </select>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-sm" onclick="applyFilters()">
+      <i class="fas fa-filter"></i> Apply
+    </button>
+  </div>
+</div>
+
+<!-- Records Table Card -->
+<div class="card">
+  <div class="card-header">
+    <div style="font-weight: 700; color: var(--text-primary);">
+      Total Matching Records: <span style="color: var(--primary);">{{ total_records }}</span>
+    </div>
+    {% if is_admin %}
+    <div>
+      <a href="{{ url_for('main.history', view_all=('0' if view_all == '1' else '1')) }}" class="btn btn-sm btn-outline">
+        <i class="fas fa-users-cog"></i> {% if view_all == '1' %}Showing All Users (Switch to Mine){% else %}Showing My Records (Switch to All){% endif %}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>System / Software</th>
+          <th>Category</th>
+          <th>Operating Time</th>
+          <th>Failures</th>
+          <th>Repair Time</th>
+          <th>MTBF</th>
+          <th>MTTR</th>
+          <th>Failure Rate (&lambda;)</th>
+          <th>Availability</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr id="row-{{ r.id }}" {% if request.args.get('highlight')|int == r.id %}style="background-color: var(--primary-light);"{% endif %}>
+          <td>
+            <div style="font-weight: 700; color: var(--text-primary);">{{ r.system_name }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+              {{ r.created_at }} {% if is_admin and view_all == '1' %}&bull; By {{ r.author_name }}{% endif %}
+            </div>
+            {% if r.notes %}
+            <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; font-style: italic;">
+              <i class="fas fa-sticky-note" style="color: var(--warning);"></i> {{ r.notes }}
+            </div>
+            {% endif %}
+          </td>
+          <td><span class="badge badge-primary">{{ r.category }}</span></td>
+          <td>{{ r.operating_time }} hrs</td>
+          <td>
+            <span class="badge {% if r.failures == 0 %}badge-success{% elif r.failures > 5 %}badge-danger{% else %}badge-warning{% endif %}">
+              {{ r.failures }}
+            </span>
+          </td>
+          <td>{{ r.repair_time }} hrs</td>
+          <td><b>{{ r.mtbf }} hrs</b></td>
+          <td>{{ r.mttr }} hrs</td>
+          <td><code>{{ "%.6f"|format(r.failure_rate) }}</code></td>
+          <td>
+            <span class="badge {% if r.availability >= 99.0 %}badge-success{% elif r.availability >= 95.0 %}badge-warning{% else %}badge-danger{% endif %}">
+              <b>{{ "%.3f"|format(r.availability) }}%</b>
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <div style="display: inline-flex; gap: 0.35rem;">
+              <!-- Download PDF -->
+              <a href="{{ url_for('main.export_single_pdf', record_id=r.id) }}" class="btn btn-outline btn-icon" title="Export PDF Audit Report">
+                <i class="fas fa-file-pdf" style="color: var(--danger);"></i>
+              </a>
+
+              <!-- Edit Record Trigger -->
+              <button type="button" class="btn btn-outline btn-icon" title="Edit Record" onclick="openEditModal({{ r.id }})">
+                <i class="fas fa-edit" style="color: var(--primary);"></i>
+              </button>
+
+              <!-- Delete Record Trigger -->
+              <button type="button" class="btn btn-outline btn-icon" title="Delete Record" onclick="confirmDeleteRecord({{ r.id }}, '{{ r.system_name | replace("'", "\\'") }}')">
+                <i class="fas fa-trash-alt" style="color: var(--danger);"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+            <i class="fas fa-search" style="font-size: 2.2rem; margin-bottom: 0.75rem; display: block;"></i>
+            No reliability records found matching your search or filters.
+            <div style="margin-top: 0.75rem;">
+              <a href="{{ url_for('main.calculator') }}" class="btn btn-primary btn-sm">Create New Record</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Controls -->
+  {% if total_pages > 1 %}
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="font-size: 0.85rem; color: var(--text-muted);">
+      Page <b>{{ current_page }}</b> of <b>{{ total_pages }}</b> ({{ total_records }} total items)
+    </div>
+    <div style="display: flex; gap: 0.35rem;">
+      {% if current_page > 1 %}
+      <a href="{{ url_for('main.history', page=current_page-1, search=search, category=category, sort_by=sort_by, sort_order=sort_order, view_all=view_all) }}" class="btn btn-outline btn-sm">
+        <i class="fas fa-chevron-left"></i> Prev
+      </a>
+      {% endif %}
+
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == current_page %}
+        <span class="btn btn-primary btn-sm">{{ p }}</span>
+        {% elif p <= 3 or p >= total_pages - 2 or (p >= current_page - 1 and p <= current_page + 1) %}
+        <a href="{{ url_for('main.history', page=p, search=search, category=category, sort_by=sort_by, sort_order=sort_order, view_all=view_all) }}" class="btn btn-outline btn-sm">
+          {{ p }}
+        </a>
+        {% endif %}
+      {% endfor %}
+
+      {% if current_page < total_pages %}
+      <a href="{{ url_for('main.history', page=current_page+1, search=search, category=category, sort_by=sort_by, sort_order=sort_order, view_all=view_all) }}" class="btn btn-outline btn-sm">
+        Next <i class="fas fa-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ==========================================================================
+     Edit Record Modal
+     ========================================================================== -->
+<div class="modal-backdrop" id="editRecordModal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="modal-title"><i class="fas fa-edit" style="color: var(--primary);"></i> Edit Reliability Record</h3>
+      <button type="button" class="modal-close-btn" onclick="closeModal('editRecordModal')">&times;</button>
+    </div>
+    <form id="editRecordForm">
+      <input type="hidden" id="edit_record_id">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="edit_system_name">System / Software Name <span class="required">*</span></label>
+          <input type="text" id="edit_system_name" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit_category">Architecture / Category</label>
+          <select id="edit_category" class="form-control">
+            <option value="Web Application">Web Application</option>
+            <option value="FinTech / Payment">FinTech / Payment</option>
+            <option value="Safety-Critical Medical">Safety-Critical Medical</option>
+            <option value="Telecommunications">Telecommunications</option>
+            <option value="Aerospace & Defense">Aerospace & Defense</option>
+            <option value="IoT / Embedded">IoT / Embedded</option>
+            <option value="General Software">General Software</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="edit_operating_time">Operating Time (hrs) <span class="required">*</span></label>
+            <input type="number" step="any" min="0" id="edit_operating_time" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit_failures">Failures <span class="required">*</span></label>
+            <input type="number" min="0" id="edit_failures" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit_repair_time">Repair Time (hrs) <span class="required">*</span></label>
+          <input type="number" step="any" min="0" id="edit_repair_time" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit_notes">Notes / Observations</label>
+          <textarea id="edit_notes" class="form-control" rows="2"></textarea>
+        </div>
+
+        <!-- Live Recalculated Metric Preview -->
+        <div id="editMetricsPreview" style="margin-top: 1rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('editRecordModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     Delete Confirmation Modal
+     ========================================================================== -->
+<div class="modal-backdrop" id="deleteConfirmModal">
+  <div class="modal-dialog" style="max-width: 440px;">
+    <div class="modal-header">
+      <h3 class="modal-title" style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h3>
+      <button type="button" class="modal-close-btn" onclick="closeModal('deleteConfirmModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 0.95rem; color: var(--text-secondary);">
+        Are you sure you want to permanently delete the reliability record for 
+        <strong id="deleteTargetSystemName" style="color: var(--text-primary);"></strong>?
+      </p>
+      <p style="font-size: 0.82rem; color: var(--danger); margin-top: 0.5rem;">
+        This action cannot be undone and will remove all associated metric logs.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" onclick="closeModal('deleteConfirmModal')">Cancel</button>
+      <button type="button" class="btn btn-danger" onclick="executeDelete()">
+        <i class="fas fa-trash-alt"></i> Delete Permanently
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/history.js') }}"></script>
+{% endblock %}
