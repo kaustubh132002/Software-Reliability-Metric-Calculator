@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Management Console - SEQA{% endblock %}
+{% block page_name %}Administrator Control Center{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="fas fa-user-shield" style="color: var(--primary);"></i> Admin Control Center</h1>
+    <p class="page-subtitle">Platform-wide user management, system audit records, and global reliability telemetry.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('main.history', view_all=1) }}" class="btn btn-primary btn-sm">
+      <i class="fas fa-table"></i> View All Global Records
+    </a>
+  </div>
+</div>
+
+<!-- Admin KPI Stats -->
+<div class="metrics-grid">
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Registered Engineers</span>
+      <div class="stat-value">{{ users | length }}</div>
+      <span class="stat-subtext">Active accounts</span>
+    </div>
+    <div class="stat-icon-wrapper icon-blue">
+      <i class="fas fa-users"></i>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Global Calculations</span>
+      <div class="stat-value">{{ total_records }}</div>
+      <span class="stat-subtext">Total system audits performed</span>
+    </div>
+    <div class="stat-icon-wrapper icon-cyan">
+      <i class="fas fa-calculator"></i>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Global Failures Logged</span>
+      <div class="stat-value" style="color: var(--danger);">{{ stats.total_failures }}</div>
+      <span class="stat-subtext">Cumulative failure incidents</span>
+    </div>
+    <div class="stat-icon-wrapper icon-rose">
+      <i class="fas fa-bug"></i>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Global Availability</span>
+      <div class="stat-value" style="color: var(--success);">{{ stats.system_wide_availability }}%</div>
+      <span class="stat-subtext">Portfolio-wide uptime metric</span>
+    </div>
+    <div class="stat-icon-wrapper icon-green">
+      <i class="fas fa-shield-alt"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Registered Users Management Table -->
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">
+    <h2 class="card-title">
+      <i class="fas fa-user-friends"></i> Registered Users & Activity
+    </h2>
+    <span class="badge badge-primary">{{ users | length }} Total Users</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>User Profile</th>
+          <th>Role</th>
+          <th>Calculations Logged</th>
+          <th>Avg System Availability</th>
+          <th>Joined Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="user-avatar-sm" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                {{ u.name[0] | upper }}
+              </div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary);">{{ u.name }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ u.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="badge {% if u.role == 'admin' %}badge-danger{% else %}badge-primary{% endif %}">
+              {{ u.role | capitalize }}
+            </span>
+          </td>
+          <td><b>{{ u.record_count }}</b> evaluations</td>
+          <td>
+            {% if u.avg_user_availability %}
+              <span class="badge {% if u.avg_user_availability >= 99.0 %}badge-success{% else %}badge-warning{% endif %}">
+                {{ "%.2f"|format(u.avg_user_availability) }}%
+              </span>
+            {% else %}
+              <span style="color: var(--text-muted); font-size: 0.8rem;">No evaluations</span>
+            {% endif %}
+          </td>
+          <td style="font-size: 0.82rem; color: var(--text-muted);">{{ u.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}404 - Page Not Found | SEQA{% endblock %}
+{% block page_name %}Page Not Found{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; padding: 4rem 2rem; max-width: 600px; margin: 2rem auto;">
+  <i class="fas fa-exclamation-circle" style="font-size: 3.5rem; color: var(--danger); margin-bottom: 1rem;"></i>
+  <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.5rem;">404 - Page Not Found</h1>
+  <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+    The page you are looking for does not exist or has been moved.
+  </p>
+  <div>
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">
+      <i class="fas fa-home"></i> Back to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

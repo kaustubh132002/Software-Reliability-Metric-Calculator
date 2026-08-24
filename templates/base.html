@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Software Reliability Metric Calculator{% endblock %} | SEQA</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  
+  <!-- Core App Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <div class="app-container">
+    {% if session.get('user_id') %}
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SEQA Logo" class="sidebar-logo">
+        <div>
+          <div class="sidebar-title">SEQA Reliability</div>
+          <div class="sidebar-subtitle">Metric Calculator</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Core Navigation</div>
+        <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+          <i class="fas fa-chart-line"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('main.calculator') }}" class="nav-item {% if request.endpoint == 'main.calculator' %}active{% endif %}">
+          <i class="fas fa-calculator"></i>
+          <span>Reliability Calculator</span>
+        </a>
+        <a href="{{ url_for('main.history') }}" class="nav-item {% if request.endpoint == 'main.history' %}active{% endif %}">
+          <i class="fas fa-history"></i>
+          <span>Records History</span>
+        </a>
+
+        <div class="nav-section-title">Reports & Export</div>
+        <a href="{{ url_for('main.export_csv') }}" class="nav-item" title="Download entire dataset as CSV">
+          <i class="fas fa-file-csv"></i>
+          <span>Export CSV</span>
+        </a>
+        <a href="{{ url_for('main.export_summary_pdf') }}" class="nav-item" title="Generate multi-system audit PDF">
+          <i class="fas fa-file-pdf"></i>
+          <span>Portfolio PDF Report</span>
+        </a>
+
+        {% if session.get('user_role') == 'admin' %}
+        <div class="nav-section-title">Administration</div>
+        <a href="{{ url_for('main.admin_panel') }}" class="nav-item {% if request.endpoint == 'main.admin_panel' %}active{% endif %}">
+          <i class="fas fa-user-shield"></i>
+          <span>Admin Center</span>
+        </a>
+        {% endif %}
+
+        <div class="nav-section-title">Account</div>
+        <a href="{{ url_for('main.profile') }}" class="nav-item {% if request.endpoint == 'main.profile' %}active{% endif %}">
+          <i class="fas fa-user-cog"></i>
+          <span>My Profile</span>
+        </a>
+        <a href="{{ url_for('main.logout') }}" class="nav-item" style="color: var(--danger);">
+          <i class="fas fa-sign-out-alt" style="color: var(--danger);"></i>
+          <span>Log Out</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-avatar-sm">
+          {{ session.get('user_name', 'U')[0] | upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">{{ session.get('user_name', 'User') }}</div>
+          <div class="sidebar-user-role">
+            <span class="badge {% if session.get('user_role') == 'admin' %}badge-danger{% else %}badge-primary{% endif %}">
+              {{ session.get('user_role', 'user') | capitalize }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle navigation">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="breadcrumb-area">
+            <span style="font-weight: 500;">SEQA</span>
+            <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
+            <span class="breadcrumb-active">{% block page_name %}Overview{% endblock %}</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Theme Toggle Switch -->
+          <button class="theme-btn" id="themeToggleBtn" title="Switch Theme">
+            <i class="fas fa-moon" id="themeIcon"></i>
+            <span id="themeText">Dark Mode</span>
+          </button>
+
+          <!-- Quick Action Calculator Button -->
+          <a href="{{ url_for('main.calculator') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> New Calculation
+          </a>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <main class="page-content animate-fade-in">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+    {% else %}
+    <!-- Full-screen layout for Auth (Login / Register) -->
+    <main style="width: 100%;">
+      {% block auth_content %}{% endblock %}
+    </main>
+    {% endif %}
+  </div>
+
+  <!-- Hidden Flash Messages Bridge -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash-message-data" data-category="{{ category }}" data-message="{{ message }}" style="display:none;"></div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Core Scripts -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

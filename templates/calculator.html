@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Reliability Calculator - SEQA{% endblock %}
+{% block page_name %}Interactive Reliability Metric Calculator{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Software Reliability Calculator</h1>
+    <p class="page-subtitle">Real-time computation for MTBF, MTTR, Failure Rate (&lambda;), and System Availability.</p>
+  </div>
+  <div style="display: flex; gap: 0.75rem;">
+    <a href="{{ url_for('main.history') }}" class="btn btn-outline btn-sm">
+      <i class="fas fa-list"></i> View History
+    </a>
+  </div>
+</div>
+
+<div class="calculator-grid">
+  <!-- Left Column: Input Form & Presets -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">
+        <i class="fas fa-sliders-h"></i> System Parameters
+      </h2>
+      <!-- Lab Preset Scenarios -->
+      <select id="presetScenarioSelect" class="form-control" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+        <option value="">Load Preset Scenario...</option>
+        <option value="telecom">Telecom Core Switch (High Availability)</option>
+        <option value="ecommerce">E-Commerce Checkout API (Standard Load)</option>
+        <option value="avionics">Avionics Flight Controller (Mission Critical)</option>
+        <option value="banking">FinTech Settlement Core (Zero Tolerance)</option>
+      </select>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.calculator') }}" id="reliabilityForm">
+      <div class="form-group">
+        <label class="form-label" for="system_name">Software / System Name <span class="required">*</span></label>
+        <div class="input-group">
+          <i class="fas fa-laptop-code input-icon"></i>
+          <input type="text" name="system_name" id="system_name" class="form-control input-with-icon" 
+                 placeholder="e.g. Microservices Auth Gateway" required value="Cloud Billing Engine">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="category">Architecture / Category</label>
+        <select name="category" id="category" class="form-control">
+          <option value="Web Application">Web Application / SaaS</option>
+          <option value="FinTech / Payment">FinTech / Payment Gateway</option>
+          <option value="Safety-Critical Medical">Safety-Critical Medical Subsystem</option>
+          <option value="Telecommunications">Telecommunications / Networking</option>
+          <option value="Aerospace & Defense">Aerospace & Avionics (DO-178C)</option>
+          <option value="IoT / Embedded">IoT / Embedded Device</option>
+          <option value="Database / Storage">Database / Storage Cluster</option>
+        </select>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <!-- Operating Time -->
+        <div class="form-group">
+          <label class="form-label" for="operating_time">Total Operating Time (T) <span class="required">*</span></label>
+          <div class="input-group">
+            <input type="number" step="any" min="0" name="operating_time" id="operating_time" class="form-control" 
+                   value="1000" placeholder="e.g. 1000" required>
+            <span class="input-unit">Hours</span>
+          </div>
+          <div class="form-hint">Total uptime observed during test phase</div>
+        </div>
+
+        <!-- Failures -->
+        <div class="form-group">
+          <label class="form-label" for="failures">Number of Failures (F) <span class="required">*</span></label>
+          <div class="input-group">
+            <input type="number" min="0" name="failures" id="failures" class="form-control" 
+                   value="4" placeholder="e.g. 4" required>
+            <span class="input-unit">Count</span>
+          </div>
+          <div class="form-hint">Total service interruptions encountered</div>
+        </div>
+      </div>
+
+      <!-- Repair Time -->
+      <div class="form-group">
+        <label class="form-label" for="repair_time">Total Repair / Down Time (R) <span class="required">*</span></label>
+        <div class="input-group">
+          <input type="number" step="any" min="0" name="repair_time" id="repair_time" class="form-control" 
+                 value="16" placeholder="e.g. 16" required>
+          <span class="input-unit">Hours</span>
+        </div>
+        <div class="form-hint">Cumulative time spent repairing and restoring service</div>
+      </div>
+
+      <!-- Mission Reliability Simulation Time -->
+      <div class="form-group">
+        <label class="form-label" for="mission_time">Mission Duration Evaluation (t)</label>
+        <div class="input-group">
+          <input type="number" step="any" min="1" id="mission_time" class="form-control" value="100">
+          <span class="input-unit">Hours</span>
+        </div>
+        <div class="form-hint">Simulate mission reliability probability R(t) over this timeframe</div>
+      </div>
+
+      <!-- Notes / Root Cause -->
+      <div class="form-group">
+        <label class="form-label" for="notes">Observations & Root Cause Notes</label>
+        <textarea name="notes" id="notes" class="form-control" rows="2" 
+                  placeholder="e.g. Memory leak under sustained load test; patch applied in v2.4.1."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">
+          <i class="fas fa-save"></i> Save Calculation to History
+        </button>
+        <button type="reset" class="btn btn-outline" onclick="setTimeout(calculateReliability, 50)">
+          <i class="fas fa-undo"></i> Reset
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right Column: Real-Time Results & Mathematical Breakdown -->
+  <div>
+    <!-- Primary Results Card -->
+    <div class="card live-result-card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-bolt"></i> Real-Time Computed Metrics
+        </h2>
+        <div id="res_availability_badge" class="badge badge-success">
+          <i class="fas fa-shield-alt"></i> Four 9s High Availability
+        </div>
+      </div>
+
+      <!-- Metric 1: MTBF -->
+      <div class="result-metric-box">
+        <div>
+          <div class="metric-title">Mean Time Between Failures (MTBF)</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Formula: MTBF = T / F</div>
+        </div>
+        <div class="metric-val" id="res_mtbf">250.00 hrs</div>
+      </div>
+
+      <!-- Metric 2: MTTR -->
+      <div class="result-metric-box">
+        <div>
+          <div class="metric-title">Mean Time To Repair (MTTR)</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Formula: MTTR = R / F</div>
+        </div>
+        <div class="metric-val" id="res_mttr" style="color: var(--warning);">4.00 hrs</div>
+      </div>
+
+      <!-- Metric 3: Failure Rate -->
+      <div class="result-metric-box">
+        <div>
+          <div class="metric-title">Failure Rate (&lambda;)</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Formula: &lambda; = F / T</div>
+        </div>
+        <div class="metric-val" id="res_fr" style="color: var(--danger);">0.004000 / hr</div>
+      </div>
+
+      <!-- Metric 4: System Availability -->
+      <div class="result-metric-box" style="border-left: 4px solid var(--success); background-color: var(--bg-card);">
+        <div>
+          <div class="metric-title" style="color: var(--text-primary); font-weight: 700;">System Availability (A)</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Formula: A = [MTBF / (MTBF + MTTR)] &times; 100</div>
+        </div>
+        <div class="metric-val" id="res_availability" style="color: var(--success); font-size: 1.75rem;">98.425%</div>
+      </div>
+
+      <!-- Metric 5: Mission Reliability R(t) -->
+      <div class="result-metric-box">
+        <div>
+          <div class="metric-title">Mission Reliability Probability R(t)</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Formula: R(t) = e^(-&lambda; &times; t)</div>
+        </div>
+        <div class="metric-val" id="res_mission_rel" style="color: var(--accent);">67.03%</div>
+      </div>
+    </div>
+
+    <!-- Step-by-Step Derivation Breakdown -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-calculator"></i> Step-by-Step Mathematical Derivation
+        </h2>
+        <span class="badge badge-primary">SEQA CS601</span>
+      </div>
+      <div id="stepByStepDerivation" class="formula-card">
+        <!-- Injected dynamically via calculator.js -->
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/calculator.js') }}"></script>
+{% endblock %}

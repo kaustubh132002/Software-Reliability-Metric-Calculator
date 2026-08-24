@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SEQA Reliability Overview{% endblock %}
+{% block page_name %}Dashboard & Metrics Overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Reliability Engineering Dashboard</h1>
+    <p class="page-subtitle">Software Quality Assurance metrics, MTBF trends, and operational availability analytics.</p>
+  </div>
+  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    <a href="{{ url_for('main.export_csv') }}" class="btn btn-outline btn-sm">
+      <i class="fas fa-file-csv"></i> Export CSV
+    </a>
+    <a href="{{ url_for('main.export_summary_pdf') }}" class="btn btn-outline btn-sm">
+      <i class="fas fa-file-pdf"></i> Audit PDF
+    </a>
+    <a href="{{ url_for('main.calculator') }}" class="btn btn-primary btn-sm">
+      <i class="fas fa-plus"></i> New Metric Test
+    </a>
+  </div>
+</div>
+
+<!-- Key Performance Indicators (KPIs) -->
+<div class="metrics-grid">
+  <!-- 1. Total Evaluated Systems -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Total Systems</span>
+      <div class="stat-value">{{ stats.total_systems }}</div>
+      <span class="stat-subtext">Monitored software modules</span>
+    </div>
+    <div class="stat-icon-wrapper icon-blue">
+      <i class="fas fa-server"></i>
+    </div>
+  </div>
+
+  <!-- 2. Total Failures -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Total Failures</span>
+      <div class="stat-value" style="color: var(--danger);">{{ stats.total_failures }}</div>
+      <span class="stat-subtext">Recorded breakdown events</span>
+    </div>
+    <div class="stat-icon-wrapper icon-rose">
+      <i class="fas fa-bug"></i>
+    </div>
+  </div>
+
+  <!-- 3. Average MTBF -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Average MTBF</span>
+      <div class="stat-value">{{ stats.avg_mtbf }} <span class="stat-unit">hrs</span></div>
+      <span class="stat-subtext">Mean time between failures</span>
+    </div>
+    <div class="stat-icon-wrapper icon-cyan">
+      <i class="fas fa-clock"></i>
+    </div>
+  </div>
+
+  <!-- 4. Average MTTR -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Average MTTR</span>
+      <div class="stat-value">{{ stats.avg_mttr }} <span class="stat-unit">hrs</span></div>
+      <span class="stat-subtext">Mean time to restore service</span>
+    </div>
+    <div class="stat-icon-wrapper icon-amber">
+      <i class="fas fa-tools"></i>
+    </div>
+  </div>
+
+  <!-- 5. Overall System Availability -->
+  <div class="stat-card" style="grid-column: span 1 / -1;">
+    <div class="stat-info" style="flex: 1;">
+      <span class="stat-label">Overall Portfolio Availability</span>
+      <div style="display: flex; align-items: baseline; gap: 0.75rem;">
+        <div class="stat-value" style="color: var(--success); font-size: 2.2rem;">
+          {{ stats.system_wide_availability }}%
+        </div>
+        <span class="badge badge-success">
+          <i class="fas fa-shield-alt"></i> Industry Standard Benchmark
+        </span>
+      </div>
+      <div style="display: flex; gap: 2rem; margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-secondary); flex-wrap: wrap;">
+        <span><b>Total Operational Hours:</b> {{ stats.total_operating_time }} hrs</span>
+        <span><b>Total Down/Repair Hours:</b> {{ stats.total_repair_time }} hrs</span>
+        <span><b>Avg Failure Rate (&lambda;):</b> {{ stats.avg_failure_rate }} /hr</span>
+      </div>
+    </div>
+    <div class="stat-icon-wrapper icon-green" style="width: 56px; height: 56px; font-size: 1.8rem;">
+      <i class="fas fa-check-double"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts-grid">
+  <!-- 1. MTBF Trend Chart -->
+  <div class="card chart-card">
+    <div class="card-header">
+      <h2 class="card-title">
+        <i class="fas fa-chart-line"></i> MTBF Trend (Mean Time Between Failures)
+      </h2>
+      <span class="badge badge-primary">Operating Hours</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="mtbfTrendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- 2. MTTR Trend Chart -->
+  <div class="card chart-card">
+    <div class="card-header">
+      <h2 class="card-title">
+        <i class="fas fa-chart-bar"></i> MTTR Trend (Mean Time To Repair)
+      </h2>
+      <span class="badge badge-warning">Recovery Duration</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="mttrTrendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- 3. System Availability Chart -->
+  <div class="card chart-card">
+    <div class="card-header">
+      <h2 class="card-title">
+        <i class="fas fa-shield-virus"></i> System Availability Comparison
+      </h2>
+      <span class="badge badge-success">Target: &ge; 99.0%</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="availabilityChart"></canvas>
+    </div>
+  </div>
+
+  <!-- 4. Failure Rate Graph -->
+  <div class="card chart-card">
+    <div class="card-header">
+      <h2 class="card-title">
+        <i class="fas fa-wave-square"></i> Failure Rate (&lambda;) Distribution
+      </h2>
+      <span class="badge badge-danger">Failures / Hour</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="failureRateChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Calculations Table -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">
+      <i class="fas fa-history"></i> Recent Reliability Calculations
+    </h2>
+    <a href="{{ url_for('main.history') }}" class="btn btn-outline btn-sm">
+      View All Records <i class="fas fa-arrow-right"></i>
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>System / Software</th>
+          <th>Category</th>
+          <th>Operating Time</th>
+          <th>Failures</th>
+          <th>MTBF</th>
+          <th>MTTR</th>
+          <th>Failure Rate (&lambda;)</th>
+          <th>Availability</th>
+          <th style="text-align: right;">Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in recent_records %}
+        <tr>
+          <td>
+            <div style="font-weight: 700; color: var(--text-primary);">{{ r.system_name }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ r.created_at }}</div>
+          </td>
+          <td><span class="badge badge-primary">{{ r.category }}</span></td>
+          <td>{{ r.operating_time }} hrs</td>
+          <td>
+            <span class="badge {% if r.failures == 0 %}badge-success{% elif r.failures > 5 %}badge-danger{% else %}badge-warning{% endif %}">
+              {{ r.failures }}
+            </span>
+          </td>
+          <td><b>{{ r.mtbf }} hrs</b></td>
+          <td>{{ r.mttr }} hrs</td>
+          <td><code>{{ "%.6f"|format(r.failure_rate) }}</code></td>
+          <td>
+            <span class="badge {% if r.availability >= 99.0 %}badge-success{% elif r.availability >= 95.0 %}badge-warning{% else %}badge-danger{% endif %}">
+              <b>{{ "%.2f"|format(r.availability) }}%</b>
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <a href="{{ url_for('main.export_single_pdf', record_id=r.id) }}" class="btn btn-outline btn-sm" title="Download System PDF Audit">
+              <i class="fas fa-file-pdf" style="color: var(--danger);"></i> PDF
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+            No reliability calculations recorded yet. 
+            <a href="{{ url_for('main.calculator') }}">Run your first calculation here</a>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Initial chart payload from server
+  const initialChartsData = {{ charts_data | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}

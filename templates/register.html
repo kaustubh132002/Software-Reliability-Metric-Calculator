@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Software Reliability Calculator{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Logo" class="auth-logo">
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-subtitle">Join the SEQA Software Reliability Platform</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.register') }}" id="registerForm">
+      <div class="form-group">
+        <label class="form-label" style="color: #e2e8f0;">Full Name</label>
+        <div class="input-group">
+          <i class="fas fa-user input-icon"></i>
+          <input type="text" name="name" id="reg_name" class="form-control input-with-icon" 
+                 placeholder="e.g. John Doe" value="{{ name or '' }}" required autofocus>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="color: #e2e8f0;">Email Address</label>
+        <div class="input-group">
+          <i class="fas fa-envelope input-icon"></i>
+          <input type="email" name="email" id="reg_email" class="form-control input-with-icon" 
+                 placeholder="name@university.edu" value="{{ email or '' }}" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="color: #e2e8f0;">Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" name="password" id="reg_password" class="form-control input-with-icon" 
+                 placeholder="At least 6 characters" required minlength="6">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="color: #e2e8f0;">Confirm Password</label>
+        <div class="input-group">
+          <i class="fas fa-shield-alt input-icon"></i>
+          <input type="password" name="confirm_password" id="reg_confirm" class="form-control input-with-icon" 
+                 placeholder="Re-enter password" required minlength="6">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.8rem; margin-top: 0.5rem;">
+        <i class="fas fa-user-plus"></i> Complete Registration
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.75rem; font-size: 0.88rem; color: #94a3b8;">
+      Already have an account? 
+      <a href="{{ url_for('main.login') }}" style="color: #38bdf8; font-weight: 600;">Sign in here</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

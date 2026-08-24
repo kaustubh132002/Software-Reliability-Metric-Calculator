@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile - Software Reliability Calculator{% endblock %}
+{% block page_name %}User Profile & Audit Stats{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">User Profile</h1>
+    <p class="page-subtitle">Personal account information and metric summary statistics.</p>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem;">
+  <!-- Left: User Identity Card -->
+  <div class="card" style="text-align: center; padding: 2.5rem 1.5rem;">
+    <div class="user-avatar-sm" style="width: 80px; height: 80px; font-size: 2rem; margin: 0 auto 1.25rem;">
+      {{ user.name[0] | upper }}
+    </div>
+    <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary);">{{ user.name }}</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">{{ user.email }}</p>
+    
+    <span class="badge {% if user.role == 'admin' %}badge-danger{% else %}badge-primary{% endif %}" style="margin-bottom: 1.5rem;">
+      {{ user.role | capitalize }} Role
+    </span>
+
+    <div style="border-top: 1px solid var(--border-color); padding-top: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); text-align: left;">
+      <div style="margin-bottom: 0.5rem;">
+        <b>Subject:</b> Software Engineering &amp; QA
+      </div>
+      <div style="margin-bottom: 0.5rem;">
+        <b>Member Since:</b> {{ user.created_at }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Activity & Reliability Summary -->
+  <div>
+    <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <div class="stat-info">
+          <span class="stat-label">My Calculations</span>
+          <div class="stat-value">{{ stats.total_systems }}</div>
+        </div>
+        <div class="stat-icon-wrapper icon-blue">
+          <i class="fas fa-calculator"></i>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span class="stat-label">Avg Availability</span>
+          <div class="stat-value" style="color: var(--success);">{{ stats.avg_availability }}%</div>
+        </div>
+        <div class="stat-icon-wrapper icon-green">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <span class="stat-label">Avg MTBF</span>
+          <div class="stat-value">{{ stats.avg_mtbf }} <span class="stat-unit">h</span></div>
+        </div>
+        <div class="stat-icon-wrapper icon-cyan">
+          <i class="fas fa-clock"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Calculations by this user -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-history"></i> Recent Activity</h3>
+        <a href="{{ url_for('main.history') }}" class="btn btn-outline btn-sm">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>System Name</th>
+              <th>Operating Time</th>
+              <th>Failures</th>
+              <th>MTBF</th>
+              <th>Availability</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in recent_records %}
+            <tr>
+              <td><b>{{ r.system_name }}</b></td>
+              <td>{{ r.operating_time }} hrs</td>
+              <td>{{ r.failures }}</td>
+              <td>{{ r.mtbf }} hrs</td>
+              <td><span class="badge badge-success">{{ "%.2f"|format(r.availability) }}%</span></td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-muted);">No records found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
